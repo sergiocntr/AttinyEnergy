@@ -1,0 +1,88 @@
+
+//#include <ota.h>
+#include <config.h>
+#include <topic.h>
+#include <pin.h>
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+#include <ArduinoJson.h>
+
+#include <Wire.h>
+#include <Adafruit_ADS1015.h>
+
+// Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
+Adafruit_ADS1015 ads;     /* Use thi for the 12-bit version */
+int zero = 512;
+
+float getCurrentAC(uint16_t frequency) {
+  float multiplier = 0.1250F;      /* ADS1115  @ +/- 4.096V gain 1    (16-bit results) */
+	uint32_t period = 1000000 / frequency;
+	uint32_t t_start = micros();
+
+	uint32_t Isum = 0, measurements_count = 0;
+	int32_t Inow;
+
+	while (micros() - t_start < period) {
+		Inow = ads.readADC_SingleEnded(0) - zero; //- zero;
+		Isum += Inow*Inow;
+		measurements_count++;
+	}
+  Serial.println(measurements_count);
+	float Irms = sqrt(Isum / measurements_count); // / ADC_SCALE * VREF / sensitivity;
+  Irms = Irms * multiplier;
+	return Irms;
+}
+void calibrate() {
+	uint16_t acc = 0;
+	for (int i = 0; i < 10; i++) {
+		acc += ads.readADC_SingleEnded(0);
+
+	}
+	zero = acc / 10;
+  Serial.println(zero);
+
+}
+void setup(void)
+{
+  Serial.begin(9600);
+
+  Serial.println("Hello!");
+
+  Serial.println("Getting single-ended readings from AIN0..3");
+  Serial.println("ADC Range: +/- 6.144V (1 bit = 3mV/ADS1015, 0.1875mV/ADS1115)");
+
+  // The ADC input range (or gain) can be changed via the following
+  // functions, but be careful never to exceed VDD +0.3V max, or to
+  // exceed the upper and lower limits if you adjust the input range!
+  // Setting these values incorrectly may destroy your ADC!
+  //                                                                ADS1015  ADS1115
+  //                                                                -------  -------
+   //ads.setGain(GAIN_TWOTHIRDS);  // 2/3x gain +/- 6.144V  1 bit = 3mV      0.1875mV (default)
+  ads.setGain(GAIN_ONE);        // 1x gain   +/- 4.096V  1 bit = 2mV      0.125mV
+  // ads.setGain(GAIN_TWO);        // 2x gain   +/- 2.048V  1 bit = 1mV      0.0625mV
+  // ads.setGain(GAIN_FOUR);       // 4x gain   +/- 1.024V  1 bit = 0.5mV    0.03125mV
+  // ads.setGain(GAIN_EIGHT);      // 8x gain   +/- 0.512V  1 bit = 0.25mV   0.015625mV
+  // ads.setGain(GAIN_SIXTEEN);    // 16x gain  +/- 0.256V  1 bit = 0.125mV  0.0078125mV
+
+  Wire.begin(D2,D1);//SDA,SCL
+  delay(10);
+  calibrate();
+}
+void loop(void)
+{
+  int16_t adc0, adc1, adc2, adc3;
+  float current = getCurrentAC(50);
+  adc0 = ads.readADC_SingleEnded(0);
+  //adc1 = ads.readADC_SingleEnded(1);
+  //adc2 = ads.readADC_SingleEnded(2);
+  //adc3 = ads.readADC_SingleEnded(3);
+  Serial.print("AIN0: "); Serial.println(adc0);
+  //Serial.print("AIN1: "); Serial.println(adc1);
+  //Serial.print("AIN2: "); Serial.println(adc2);
+  Serial.print("Current : "); Serial.print(current);
+  Serial.println(" A");
+  float U = 230;
+  float P = U * current;
+Serial.println(String("P = ") + P + " Watts");
+  delay(1000);
+}
