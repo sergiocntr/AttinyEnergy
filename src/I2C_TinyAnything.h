@@ -1,14 +1,14 @@
 // Written by Nick Gammon
 // May 2012
-
+//modified by Sergio Contro
 #include <Arduino.h>
-//#include <Wire.h>
-#include "TinyWireS.h"
+#include <TinyWireS.h>
 template <typename T> unsigned int I2C_writeAnything (const T& value)
   {
     const byte * p = (const byte*) &value;
     unsigned int i;
     for (i = 0; i < sizeof value; i++)
+
           TinyWireS.send(*p++);
     return i;
   }  // end of I2C_writeAnything

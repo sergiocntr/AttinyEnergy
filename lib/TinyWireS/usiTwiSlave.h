@@ -73,7 +73,7 @@ void    (*usi_onReceiverPtr)(uint8_t);
 // permitted RX buffer sizes: 1, 2, 4, 8, 16, 32, 64, 128 or 256
 
 #ifndef TWI_RX_BUFFER_SIZE
-#define TWI_RX_BUFFER_SIZE  ( 16 )
+#define TWI_RX_BUFFER_SIZE  ( 32 )
 #endif
 #define TWI_RX_BUFFER_MASK  ( TWI_RX_BUFFER_SIZE - 1 )
 
@@ -84,7 +84,7 @@ void    (*usi_onReceiverPtr)(uint8_t);
 // permitted TX buffer sizes: 1, 2, 4, 8, 16, 32, 64, 128 or 256
 
 #ifndef TWI_TX_BUFFER_SIZE
-#define TWI_TX_BUFFER_SIZE ( 16 )
+#define TWI_TX_BUFFER_SIZE ( 32 )
 #endif
 #define TWI_TX_BUFFER_MASK ( TWI_TX_BUFFER_SIZE - 1 )
 
