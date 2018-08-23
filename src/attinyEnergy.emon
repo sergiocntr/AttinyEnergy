@@ -13,7 +13,7 @@ uses internal 1.1V as the reference voltage
 //#define DEBUGMIO
 #if defined DEBUGMIO
 #include <SendOnlySoftwareSerial.h>
-//#include <SoftwareSerial.h>
+#include <SoftwareSerial.h>
 SendOnlySoftwareSerial mySerial (1);  // Tx pin
 //SoftwareSerial mySerial(3, 1); // RX, TX
 #endif
@@ -28,7 +28,7 @@ void setup(){
   #endif
   DEBUG_PRINT("booting");
   emon1.voltage(4, 225, 1);  // Voltage: input pin, calibration, phase_shift
-  emon1.current(3, 180);       // Current: input pin, calibration.
+  emon1.current(3, 100);       // Current: input pin, calibration.
   TinyWireS.begin(SLAVE_ADDRESS);
   TinyWireS.onRequest(requestEvent);
   DEBUG_PRINT("into loop!");

@@ -1,0 +1,138 @@
+#include <Arduino.h>
+#include "TinyWireS.h"
+#include "Energyconfig.h"
+#include <I2C_TinyAnything.h>
+#include <debugutils.h>
+#define alarmPin 1
+//#define DEBUGMIO
+#if defined DEBUGMIO
+  #include <SendOnlySoftwareSerial.h>
+  SendOnlySoftwareSerial mySerial (1);  // Tx pin
+#endif
+unsigned int numSamples=0;
+unsigned long previousMillis = 0; //will store last time watts was updated
+unsigned long interval = 1000; //interval at which to check (milliseconds)
+uint16_t min,max;
+void setup(){
+  #if defined DEBUGMIO
+    delay(2000);
+    mySerial.begin(9600);
+  #endif
+  DEBUG_PRINT("booting");
+  initADC();
+  TinyWireS.begin(SLAVE_ADDRESS);
+  TinyWireS.onRequest(requestEvent);
+  DEBUG_PRINT("into loop!");
+  haveData=false;
+}
+void initADC()
+{
+  ADMUX =
+            (0 << ADLAR) |     // do not left shift result
+            (0 << REFS1) |     // Sets ref. voltage to VCC, bit 1
+            (1 << REFS0) |     // Sets ref. voltage to VCC, bit 0
+            (0 << MUX3)  |     // use ADC2 for input (PB4), MUX bit 3
+            (0 << MUX2)  |     // use ADC2 for input (PB4), MUX bit 2
+            (1 << MUX1)  |     // use ADC2 for input (PB4), MUX bit 1
+            (0 << MUX0);       // use ADC2 for input (PB4), MUX bit 0
+
+  ADCSRA =
+            (1 << ADEN)  |     // Enable ADC
+            (1 << ADPS2) |     // set prescaler to 128, bit 2
+            (1 << ADPS1) |     // set prescaler to 128, bit 1
+            (1 << ADPS0);      // set prescaler to 128, bit 0
+}
+void loop(){
+  //for (int i = 0; i < 10; i++)
+  //{
+    initADC();
+    #if defined DEBUGMIO
+    //stampa();
+    #endif
+    smartDelay(10);
+    calcola();
+    myener.supplyVoltage = (max-min)*0.27;
+    DEBUG_PRINT("VOLT " + String(myener.supplyVoltage));
+    ADMUX =
+            (0 << ADLAR) |     // do not left shift result
+            (0 << REFS1) |     // Sets ref. voltage to VCC, bit 1
+            (1 << REFS0) |     // Sets ref. voltage to VCC, bit 0
+            (0 << MUX3)  |     // use ADC2 for input (PB4), MUX bit 3
+            (0 << MUX2)  |     // use ADC2 for input (PB4), MUX bit 2
+            (1 << MUX1)  |     // use ADC2 for input (PB4), MUX bit 1
+            (1 << MUX0);       // use ADC2 for input (PB4), MUX bit 0
+            smartDelay(10);
+  calcola();
+  #if defined DEBUGMIO
+  //stampa();
+  #endif
+  myener.Irms = (max-min)*0.015;
+  if( myener.Irms > 8) suonaCampanello();
+  myener.realPower += myener.Irms * myener.supplyVoltage;
+  DEBUG_PRINT("Rp " + String(myener.realPower));
+  //}
+  DEBUG_PRINT("HAI DATI!");
+  //haveData=true;
+
+}
+void stampa(){
+  //mySerial.begin(9600);
+  //delay(10);
+  DEBUG_PRINT("Samples: " + String(numSamples));
+  DEBUG_PRINT("MAX: " + String(max));
+  DEBUG_PRINT("MIN " + String(min));
+  smartDelay(5000);
+}
+void calcola(){
+  numSamples=0;
+  min=1024;
+  max=0;
+  previousMillis = millis();
+  uint8_t adc_lobyte; // to hold the low byte of the ADC register (ADCL)
+  uint16_t raw_adc;
+  while((millis()-previousMillis) < interval)
+  {
+    ADCSRA |= (1 << ADSC);         // start ADC measurement
+    while (ADCSRA & (1 << ADSC) ); // wait till conversion complete
+    adc_lobyte = ADCL; // get the sample value from ADCL
+    raw_adc = ADCH<<8 | adc_lobyte;   // add lobyte and hibyte
+    //raw_adc=analogRead(3);
+    if(raw_adc >= max)
+      max = raw_adc;
+    if(raw_adc <= min)
+      min = raw_adc;
+    numSamples++;
+  }
+}
+void suonaCampanello(){
+  for (char i = 0; i < 3; i++) {
+      tone(alarmPin,1000,1000);     //suona nota sul pin 12 alla frequenza di 1000Hz
+      smartDelay(3000);                        //aspetta 2 secondi
+      noTone(alarmPin);                //non suona
+      smartDelay(1000);
+
+
+  }
+}
+void smartDelay(unsigned long ms){
+  unsigned long start = millis();
+  do
+  {
+    TinyWireS_stop_check();
+  } while (millis() - start < ms);
+}
+void requestEvent(){
+  DEBUG_PRINT("Dati Richiesti!");
+  //if(!haveData) return;
+  myener.supplyVoltage/=numSamples;
+  myener.supplyVoltage/=numSamples;
+  myener.Irms/=numSamples;
+  //delay(1);
+  I2C_writeAnything(myener);
+  DEBUG_PRINT("Dati mandati!");
+  myener.realPower=0;
+  myener.supplyVoltage=0;
+  myener.Irms=0;
+  numSamples=0;
+  haveData=false;
+}
