@@ -11,7 +11,6 @@
      mySerial.print(' ');      \
      mySerial.println(str);
 #else
-  #define DEBUG_PRINT(str) \
-//    mySerial.println(str);
+  #define DEBUG_PRINT(str)
   #endif
 #endif
