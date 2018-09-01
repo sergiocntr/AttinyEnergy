@@ -1,10 +1,3 @@
-/*Example #2 code:
-assumes a clock speed of 8MHz on an ATtiny85
-uses 10-bit resolution (values from 0-1024)
-uses ADC1 on pin PB2
-uses internal 1.1V as the reference voltage
-*/
-
 #include "TinyWireS.h"
 #include <Arduino.h>
 #include "Energyconfig.h"
@@ -13,11 +6,8 @@ uses internal 1.1V as the reference voltage
 //#define DEBUGMIO
 #if defined DEBUGMIO
 #include <SendOnlySoftwareSerial.h>
-//#include <SoftwareSerial.h>
 SendOnlySoftwareSerial mySerial (1);  // Tx pin
-//SoftwareSerial mySerial(3, 1); // RX, TX
 #endif
-//#define emonTxV3  //per 3.3volt
 // EmonLibrary examples openenergymonitor.org, Licence GNU GPL V3
 #include "EmonLib.h"             // Include Emon Library
 EnergyMonitor emon1;             // Create an instance
@@ -27,7 +17,7 @@ void setup(){
     mySerial.begin(9600);
   #endif
   DEBUG_PRINT("booting");
-  emon1.voltage(4, 225, 1);  // Voltage: input pin, calibration, phase_shift
+  emon1.voltage(2, 225, 1);  // Voltage: input pin, calibration, phase_shift
   emon1.current(3, 111);       // Current: input pin, calibration.
   TinyWireS.begin(SLAVE_ADDRESS);
   TinyWireS.onRequest(requestEvent);
@@ -38,12 +28,11 @@ void loop(){
   if(!haveData)
   {
     emon1.calcVI(100,2000);         // Calculate all. No.of half wavelengths (crossings), time-out
-    emon1.serialprint();           // Print out all variables (realpower, apparent power, Vrms, Irms, power factor)
     myener.realPower       = roundTwo(emon1.realPower);        //extract Real Power into variable
     myener.apparentPower   = roundTwo(emon1.apparentPower);  //extract Apparent Power into variable
     myener.powerFactor     = roundTwo(emon1.powerFactor);     //extract Power Factor into Variable
     myener.supplyVoltage   = roundTwo(emon1.Vrms);           //extract Vrms into Variable
-    myener.Irms            = roundTwo(emon1.Irms)/10;            //extract Irms into Variable
+    myener.Irms            = roundTwo(emon1.Irms);            //extract Irms into Variable
     DEBUG_PRINT("Volt: " + String(myener.supplyVoltage));
     haveData=true;
   }
@@ -57,8 +46,8 @@ void requestEvent(){
   haveData=false;
 
 }
-float roundTwo(float pippo){
+uint16_t roundTwo(float pippo){
   uint16_t buf = pippo * 100;
-  return (float)buf/100;
+  return (uint16_t)buf;
 
 }

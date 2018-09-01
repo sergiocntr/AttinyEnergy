@@ -1,5 +1,0 @@
-#include "adcRead.h"
-#include <Arduino.h>
-//#include "EnergyMUXconfig.h"
-//PB4 -> ADC2 0 << MUX0
-//PB3 -> ADC3 0 << MUX0
